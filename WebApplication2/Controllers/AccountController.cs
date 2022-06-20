@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Homework5.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using WebApplication2.Data;
 using WebApplication2.Models;
 
@@ -76,6 +78,30 @@ namespace JwtToken.Controllers
             }
 
             return Ok("User Created");
+        }
+        [HttpGet]
+        public IActionResult GetUsers([FromQuery] PagingQueryParameter parameter)
+        {
+            var users = _userManager.Users.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(parameter.Keyword))
+            {
+                users = users.Where(x => x.UserName.Contains(parameter.Keyword));
+            }
+            var totalUser = users.Count();
+            var totalPage = (int)Math.Ceiling((double)totalUser / parameter.Limit);
+            bool hasPrevious = parameter.Page > 1;
+            var hasNext = parameter.Page < totalPage;
+            var metaData = new
+            {
+                totalUser,
+                parameter.Limit,
+                parameter.Page,
+                totalPage,
+                hasPrevious,
+                hasNext
+            };
+            Response.Headers.Add("X-Pagination",JsonSerializer.Serialize(metaData));
+            return Ok(users.Skip((parameter.Page - 1)*parameter.Limit).Take(parameter.Limit));
         }
 
 
