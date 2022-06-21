@@ -12,6 +12,7 @@ using System.Text;
 using System.Text.Json;
 using WebApplication2.Data;
 using WebApplication2.Models;
+using WebApplication2.Services;
 
 namespace JwtToken.Controllers
 {
@@ -23,8 +24,9 @@ namespace JwtToken.Controllers
     {
         private readonly UserManager<IdentityUser> _userManager;
         private readonly TokenOption tokenOption;
-        public AccountController(UserManager<IdentityUser> userManager, IOptions<TokenOption>options) =>
-            (_userManager, tokenOption) = (userManager, options.Value);
+        private readonly IMQService _mQService;
+        public AccountController(UserManager<IdentityUser> userManager, IOptions<TokenOption> options, IMQService mQService) =>
+            (_userManager, tokenOption,_mQService) = (userManager, options.Value,mQService);
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserLoginDto login)
@@ -76,7 +78,7 @@ namespace JwtToken.Controllers
             {
                 return BadRequest(result.Errors.Select(x=>x));
             }
-
+            _mQService.CreateMQ(user.UserName);
             return Ok("User Created");
         }
         [HttpGet]
